@@ -4,76 +4,113 @@ import 'screens/userpage.dart';
 import 'screens/incomepage.dart';
 import 'screens/statisticspage.dart';
 import 'screens/expensepage.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'screens/main_screen.dart';
 
 
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(MyApp());
 }
 
-class MyApp extends StatefulWidget {
-  static const String title = 'Expense Tracker';
-
-  @override
-  _MyAppState createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  int _selectedIndex = 0;
-
-  static List<Widget> _pages = [
-    ExpensesPage(),
-    IncomePage(),
-    StatisticsPage(),
-    UserPage(),
-  ];
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+class MyApp extends StatelessWidget {
+  static const String homeRoute = '/';
+  static const String mainRoute = '/mainPage';
+  static const String loginRoute = '/student-login';
+  static const String registrationRoute = '/registration';
+  static const String teacherDashboardRoute = '/teacher-dashboard';
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: MyApp.title,
+      title: 'My App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('Expense Tracker'),
-        ),
-        body: _pages[_selectedIndex],
-        bottomNavigationBar: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
+      initialRoute:homeRoute,
+      routes: {
+        homeRoute: (context) => HomePage(),
+        mainRoute: (context) => MainPage(),
+        registrationRoute: (context) => RegisterPage(),
+        loginRoute: (context) => LoginPage(),
 
-            BottomNavigationBarItem(
-              icon: Icon(Icons.money_off),
-              label: 'Expenses',
+      },
+    );
+  }
+}
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Home'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+              height: 64.0,
+              width: double.infinity,
+              child: TextButton(
+                child: Text(
+                  'Login',
+                  style: TextStyle(
+                    color: Color(0xFF4A44C6),
+                  ),
+                ),
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
+                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24.0),
+                      side: BorderSide.none,
+                    ),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pushNamed(context, MyApp.loginRoute);
+                },
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.attach_money),
-              label: 'Income',
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+              height: 64.0,
+              width: double.infinity,
+              child: TextButton(
+                child: Text(
+                  'Register',
+                  style: TextStyle(
+                    color: Color(0xFF4A44C6),
+                  ),
+                ),
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
+                  shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24.0),
+                      side: BorderSide.none,
+                    ),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pushNamed(context, MyApp.registrationRoute);
+                },
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart),
-              label: 'Statistics',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'User',
-            ),
+
           ],
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          selectedItemColor: Colors.blue, // Change the selected icon color here
-          unselectedItemColor: Colors.grey,
         ),
       ),
     );
   }
 }
+
 
 
 
