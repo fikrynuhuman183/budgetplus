@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:budgetplus/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:budgetplus/components/custom_alert_dialog.dart';
+import 'package:budgetplus/components/add_expense_cat.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
 class ExpensesPage extends StatefulWidget {
   @override
@@ -15,9 +18,55 @@ class _ExpensesPageState extends State<ExpensesPage> {
   final TextEditingController _noteController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   late String _selectedExpenseType;
+  bool showSpinner = false;
+  late List<String> categoriesList = [];
 
+  late String uid;
 
-  List<String> _expenseTypes = ['Food', 'Transportation', 'Shopping', 'Other'];
+  Future<void> getExpenseCategories() async {
+    setState(() {
+      showSpinner = true;
+    });
+    CollectionReference expenseCategoriesRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('expenseCategories');
+
+    DocumentSnapshot snapshot =
+        await expenseCategoriesRef.doc('expenseCategories').get();
+
+    if (snapshot.exists) {
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      List<dynamic> categories = data['categories'];
+
+      categoriesList = List<String>.from(categories);
+    } else {
+      categoriesList =
+          []; // Reset the list if 'categories' document doesn't exist
+    }
+    if (categoriesList.isEmpty) {
+      categoriesList = ['Please Add a Category'];
+    }
+    setState(() {
+      showSpinner = false;
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    final FirebaseAuth auth = FirebaseAuth.instance;
+    final User? user = auth.currentUser;
+    if (user == null) {
+      Navigator.pushNamedAndRemoveUntil(
+          context, MyApp.loginRoute, (route) => false);
+    } else {
+      uid = user!.uid;
+    }
+
+    getExpenseCategories();
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -25,35 +74,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
     _noteController.dispose();
     super.dispose();
   }
-  Future<void> addExpense({
-    required String name,
-    required String grade,
-    String description = '',
-  }) async {
-    final FirebaseAuth auth = FirebaseAuth.instance;
-    final User? user = auth.currentUser;
-    if (user == null) {
-      Navigator.pushNamedAndRemoveUntil(
-          context, MyApp.loginRoute, (route) => false);
-    }
-    final uid = user?.uid;
-    try {
-      // Add a new subject document to the teacher's subcollection
-      await FirebaseFirestore.instance.collection('subjects').add({
-        'name': name,
-        'grade': grade,
-        'description': description,
-        'teacher_id': uid,
-        'link': '',
-      });
-    } catch (e) {
-      print('Error adding subject: $e');
-      return;
-    }
-    Navigator.pop(context);
-  }
 
-  void _submitExpense() async{
+  void _submitExpense() async {
     final FirebaseAuth auth = FirebaseAuth.instance;
     final User? user = auth.currentUser;
     if (user == null) {
@@ -116,7 +138,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
       // Clear the input fields
       _amountController.clear();
-      _selectedExpenseType = _expenseTypes[0];
+      _selectedExpenseType = categoriesList[0];
       _noteController.clear();
       _selectedDate = DateTime.now();
     }).catchError((error) {
@@ -137,10 +159,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
-    _selectedExpenseType = _expenseTypes[0];
+    _selectedExpenseType = categoriesList[0];
+    getExpenseCategories();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFFF5F7FF),
@@ -155,7 +177,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
       ),
       backgroundColor: Color(0xFFF5F7FF),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(40),
         child: Form(
           key: _formKey,
           child: Column(
@@ -168,8 +190,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     _selectedExpenseType = newValue!;
                   });
                 },
-                items: _expenseTypes.map<DropdownMenuItem<String>>(
-                      (String value) {
+                items: categoriesList.map<DropdownMenuItem<String>>(
+                  (String value) {
                     return DropdownMenuItem<String>(
                       value: value,
                       child: Text(value),
@@ -318,21 +340,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 ),
               ),
               SizedBox(height: 30.0),
-              // Container(
-              //
-              //   child: TextButton(
-              //     onPressed: onPressed,
-              //     style: TextButton.styleFrom(
-              //       backgroundColor: Color(0xFFE9E9FF),
-              //     ),
-              //     child: Text(
-              //       'OK',
-              //       style: TextStyle(
-              //         color: Color(0xFF4A44C6),
-              //       ),
-              //     ),
-              //   ),
-              // ),
               Container(
                 height: 64.0,
                 width: double.infinity,
@@ -344,7 +351,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     ),
                   ),
                   style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
+                    backgroundColor:
+                        MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
                     shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                       RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24.0),
@@ -353,6 +361,39 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     ),
                   ),
                   onPressed: _submitExpense,
+                ),
+              ),
+              SizedBox(height: 30.0),
+              Container(
+                height: 64.0,
+                width: double.infinity,
+                child: TextButton(
+                  child: Text(
+                    'Edit Expense Categories',
+                    style: TextStyle(
+                      color: Color(0xFF4A44C6),
+                    ),
+                  ),
+                  style: ButtonStyle(
+                    backgroundColor:
+                        MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
+                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24.0),
+                        side: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  onPressed: () {
+                    // showModalBottomSheet(
+                    //     context: context,
+                    //     isScrollControlled: true,
+                    //     useSafeArea: true,
+                    //     builder: (BuildContext context) {
+                    //       return AddExpenseCategory();
+                    //     });
+                    Navigator.pushNamed(context, MyApp.addExpCat);
+                  },
                 ),
               ),
             ],

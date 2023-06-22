@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:budgetplus/main.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:budgetplus/components/custom_alert_dialog.dart';
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+
 class IncomePage extends StatefulWidget {
   @override
   _IncomePageState createState() => _IncomePageState();
@@ -13,10 +15,10 @@ class _IncomePageState extends State<IncomePage> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
-  late String _selectedExpenseType;
-
-
-  List<String> _expenseTypes = ['Food', 'Transportation', 'Shopping', 'Other'];
+  late String _selectedIncomeType;
+  bool showSpinner = false;
+  late List<String> categoriesList = ['Please Add a Cateogry'];
+  late String uid;
 
   @override
   void dispose() {
@@ -25,7 +27,33 @@ class _IncomePageState extends State<IncomePage> {
     super.dispose();
   }
 
-  void _submitIncome() async{
+  Future<void> getIncomeCategories() async {
+    setState(() {
+      showSpinner = true;
+    });
+    CollectionReference incomeCategoriesRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('incomeCategories');
+
+    DocumentSnapshot snapshot =
+        await incomeCategoriesRef.doc('incomeCategories').get();
+
+    if (snapshot.exists) {
+      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+      List<dynamic> categories = data['categories'];
+
+      categoriesList = List<String>.from(categories);
+    }
+    if (categoriesList.isEmpty) {
+      categoriesList = ['Please Add a Category'];
+    }
+    setState(() {
+      showSpinner = false;
+    });
+  }
+
+  void _submitIncome() async {
     final FirebaseAuth auth = FirebaseAuth.instance;
     final User? user = auth.currentUser;
     if (user == null) {
@@ -35,7 +63,7 @@ class _IncomePageState extends State<IncomePage> {
     final uid = user?.uid;
 
     String amount = _amountController.text;
-    String category = _selectedExpenseType;
+    String category = _selectedIncomeType;
     String note = _noteController.text;
     DateTime selectedDate = _selectedDate;
 
@@ -57,20 +85,20 @@ class _IncomePageState extends State<IncomePage> {
       return;
     }
 
-    // Create a map of the expense data
-    Map<String, dynamic> expenseData = {
+    // Create a map of the income data
+    Map<String, dynamic> incomeData = {
       'amount': amount,
       'category': category,
       'note': note,
       'date': selectedDate,
     };
 
-    // Add the expense data to Firestore
+    // Add the income data to Firestore
     await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('income')
-        .add(expenseData)
+        .add(incomeData)
         .then((value) {
       // Show a success message
       showDialog(
@@ -88,7 +116,7 @@ class _IncomePageState extends State<IncomePage> {
 
       // Clear the input fields
       _amountController.clear();
-      _selectedExpenseType = _expenseTypes[0];
+      _selectedIncomeType = categoriesList[0];
       _noteController.clear();
       _selectedDate = DateTime.now();
     }).catchError((error) {
@@ -110,8 +138,24 @@ class _IncomePageState extends State<IncomePage> {
   }
 
   @override
+  void initState() {
+    final FirebaseAuth auth = FirebaseAuth.instance;
+    final User? user = auth.currentUser;
+    if (user == null) {
+      Navigator.pushNamedAndRemoveUntil(
+          context, MyApp.loginRoute, (route) => false);
+    } else {
+      uid = user!.uid;
+    }
+
+    getIncomeCategories();
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    _selectedExpenseType = _expenseTypes[0];
+    _selectedIncomeType = categoriesList[0];
+    getIncomeCategories();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFFF5F7FF),
@@ -126,21 +170,21 @@ class _IncomePageState extends State<IncomePage> {
       ),
       backgroundColor: Color(0xFFF5F7FF),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(40),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DropdownButtonFormField<String>(
-                value: _selectedExpenseType,
+                value: _selectedIncomeType,
                 onChanged: (String? newValue) {
                   setState(() {
-                    _selectedExpenseType = newValue!;
+                    _selectedIncomeType = newValue!;
                   });
                 },
-                items: _expenseTypes.map<DropdownMenuItem<String>>(
-                      (String value) {
+                items: categoriesList.map<DropdownMenuItem<String>>(
+                  (String value) {
                     return DropdownMenuItem<String>(
                       value: value,
                       child: Text(value),
@@ -148,7 +192,7 @@ class _IncomePageState extends State<IncomePage> {
                   },
                 ).toList(),
                 decoration: InputDecoration(
-                  labelText: 'Expense Type',
+                  labelText: 'Income Type',
                   labelStyle: TextStyle(
                     color: Color(0xFF8F94A3),
                   ),
@@ -169,7 +213,7 @@ class _IncomePageState extends State<IncomePage> {
                 ),
                 validator: (value) {
                   if (value == null) {
-                    return 'Please select an expense type';
+                    return 'Please select an income type';
                   }
                   return null;
                 },
@@ -300,7 +344,8 @@ class _IncomePageState extends State<IncomePage> {
                     ),
                   ),
                   style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
+                    backgroundColor:
+                        MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
                     shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                       RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24.0),
@@ -311,6 +356,39 @@ class _IncomePageState extends State<IncomePage> {
                   onPressed: _submitIncome,
                 ),
               ),
+              SizedBox(height: 30.0),
+              Container(
+                height: 64.0,
+                width: double.infinity,
+                child: TextButton(
+                  child: Text(
+                    'Edit Income Categories',
+                    style: TextStyle(
+                      color: Color(0xFF4A44C6),
+                    ),
+                  ),
+                  style: ButtonStyle(
+                    backgroundColor:
+                        MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
+                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24.0),
+                        side: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  onPressed: () {
+                    // showModalBottomSheet(
+                    //     context: context,
+                    //     isScrollControlled: true,
+                    //     useSafeArea: true,
+                    //     builder: (BuildContext context) {
+                    //       return AddExpenseCategory();
+                    //     });
+                    Navigator.pushNamed(context, MyApp.addIncCat);
+                  },
+                ),
+              ),
             ],
           ),
         ),
@@ -318,4 +396,3 @@ class _IncomePageState extends State<IncomePage> {
     );
   }
 }
-
