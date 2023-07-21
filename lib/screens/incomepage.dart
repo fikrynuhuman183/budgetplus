@@ -15,9 +15,9 @@ class _IncomePageState extends State<IncomePage> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
-  late String _selectedIncomeType;
+  String _selectedIncomeType = 'null';
   bool showSpinner = false;
-  late List<String> categoriesList = ['Please Add a Cateogry'];
+  late List<String> categoriesList = [];
   late String uid;
 
   @override
@@ -25,32 +25,6 @@ class _IncomePageState extends State<IncomePage> {
     _amountController.dispose();
     _noteController.dispose();
     super.dispose();
-  }
-
-  Future<void> getIncomeCategories() async {
-    setState(() {
-      showSpinner = true;
-    });
-    CollectionReference incomeCategoriesRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('incomeCategories');
-
-    DocumentSnapshot snapshot =
-        await incomeCategoriesRef.doc('incomeCategories').get();
-
-    if (snapshot.exists) {
-      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-      List<dynamic> categories = data['categories'];
-
-      categoriesList = List<String>.from(categories);
-    }
-    if (categoriesList.isEmpty) {
-      categoriesList = ['Please Add a Category'];
-    }
-    setState(() {
-      showSpinner = false;
-    });
   }
 
   void _submitIncome() async {
@@ -88,7 +62,7 @@ class _IncomePageState extends State<IncomePage> {
     // Create a map of the income data
     Map<String, dynamic> incomeData = {
       'amount': amount,
-      'category': category,
+      'category': _selectedIncomeType,
       'note': note,
       'date': selectedDate,
     };
@@ -116,9 +90,7 @@ class _IncomePageState extends State<IncomePage> {
 
       // Clear the input fields
       _amountController.clear();
-      _selectedIncomeType = categoriesList[0];
       _noteController.clear();
-      _selectedDate = DateTime.now();
     }).catchError((error) {
       // Show an error message if there's an issue with Firestore
       showDialog(
@@ -147,15 +119,11 @@ class _IncomePageState extends State<IncomePage> {
     } else {
       uid = user!.uid;
     }
-
-    getIncomeCategories();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    _selectedIncomeType = categoriesList[0];
-    getIncomeCategories();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFFF5F7FF),
@@ -176,46 +144,66 @@ class _IncomePageState extends State<IncomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DropdownButtonFormField<String>(
-                value: _selectedIncomeType,
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedIncomeType = newValue!;
-                  });
-                },
-                items: categoriesList.map<DropdownMenuItem<String>>(
-                  (String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(uid)
+                    .collection('incomeCategories')
+                    .doc('incomeCategories')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  List<DropdownMenuItem> catItems = [];
+                  if (!snapshot.hasData) {
+                    return CircularProgressIndicator(); // Show a loading indicator while waiting for data
+                  } else {
+                    // If the document doesn't exist or has no data, display 'Please add a category'
+                    List<dynamic> categories = snapshot.data!.get('categories');
+                    List<String> expenseCategories =
+                        List<String>.from(categories);
+                    catItems.add(
+                      DropdownMenuItem<String>(
+                        value: 'null',
+                        child: Text('Please Select a category'),
+                      ),
                     );
-                  },
-                ).toList(),
-                decoration: InputDecoration(
-                  labelText: 'Income Type',
-                  labelStyle: TextStyle(
-                    color: Color(0xFF8F94A3),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.transparent,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.transparent,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  fillColor: Colors.white,
-                  filled: true,
-                ),
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select an income type';
+                    for (String category in expenseCategories) {
+                      catItems.add(
+                        DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(category),
+                        ),
+                      );
+                    }
+                    return DropdownButtonFormField(
+                      value: _selectedIncomeType,
+                      onChanged: (newValue) {
+                        setState(() {
+                          _selectedIncomeType = newValue!;
+                        });
+                      },
+                      items: catItems,
+                      decoration: InputDecoration(
+                        labelText: 'Income Type',
+                        labelStyle: TextStyle(
+                          color: Color(0xFF8F94A3),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.transparent,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.transparent,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        fillColor: Colors.white,
+                        filled: true,
+                      ),
+                    );
                   }
-                  return null;
                 },
               ),
               SizedBox(height: 16.0),

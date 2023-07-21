@@ -14,47 +14,19 @@ class ExpensesPage extends StatefulWidget {
 
 class _ExpensesPageState extends State<ExpensesPage> {
   final _formKey = GlobalKey<FormState>();
+
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+
   DateTime _selectedDate = DateTime.now();
-  late String _selectedExpenseType;
-  bool showSpinner = false;
+  String _selectedExpenseType = 'null';
   late List<String> categoriesList = [];
 
   late String uid;
-
-  Future<void> getExpenseCategories() async {
-    setState(() {
-      showSpinner = true;
-    });
-    CollectionReference expenseCategoriesRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('expenseCategories');
-
-    DocumentSnapshot snapshot =
-        await expenseCategoriesRef.doc('expenseCategories').get();
-
-    if (snapshot.exists) {
-      Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-      List<dynamic> categories = data['categories'];
-
-      categoriesList = List<String>.from(categories);
-    } else {
-      categoriesList =
-          []; // Reset the list if 'categories' document doesn't exist
-    }
-    if (categoriesList.isEmpty) {
-      categoriesList = ['Please Add a Category'];
-    }
-    setState(() {
-      showSpinner = false;
-    });
-  }
+  bool showSpinner = false;
 
   @override
   void initState() {
-    // TODO: implement initState
     final FirebaseAuth auth = FirebaseAuth.instance;
     final User? user = auth.currentUser;
     if (user == null) {
@@ -64,16 +36,38 @@ class _ExpensesPageState extends State<ExpensesPage> {
       uid = user!.uid;
     }
 
-    getExpenseCategories();
     super.initState();
   }
 
-  @override
-  void dispose() {
-    _amountController.dispose();
-    _noteController.dispose();
-    super.dispose();
-  }
+  // Future<void> getExpenseCategories() async {
+  //   setState(() {
+  //     showSpinner = true;
+  //   });
+  //   CollectionReference expenseCategoriesRef = FirebaseFirestore.instance
+  //       .collection('users')
+  //       .doc(uid)
+  //       .collection('expenseCategories');
+  //
+  //   DocumentSnapshot snapshot =
+  //       await expenseCategoriesRef.doc('expenseCategories').get();
+  //
+  //   if (snapshot.exists) {
+  //     Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+  //     List<dynamic> categories = data['categories'];
+  //
+  //     categoriesList = List<String>.from(categories);
+  //   } else {
+  //     categoriesList =
+  //         []; // Reset the list if 'categories' document doesn't exist
+  //   }
+  //   if (categoriesList.isEmpty) {
+  //     categoriesList = ['Please Add a Category'];
+  //   }
+  //
+  //   setState(() {
+  //     showSpinner = false;
+  //   });
+  // }
 
   void _submitExpense() async {
     final FirebaseAuth auth = FirebaseAuth.instance;
@@ -81,6 +75,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     if (user == null) {
       Navigator.pushNamedAndRemoveUntil(
           context, MyApp.loginRoute, (route) => false);
+      return;
     }
     final uid = user?.uid;
 
@@ -110,10 +105,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
     // Create a map of the expense data
     Map<String, dynamic> expenseData = {
       'amount': amount,
-      'category': category,
+      'category': _selectedExpenseType,
       'note': note,
       'date': selectedDate,
     };
+    print(expenseData);
 
     // Add the expense data to Firestore
     await FirebaseFirestore.instance
@@ -138,9 +134,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
       // Clear the input fields
       _amountController.clear();
-      _selectedExpenseType = categoriesList[0];
       _noteController.clear();
-      _selectedDate = DateTime.now();
     }).catchError((error) {
       // Show an error message if there's an issue with Firestore
       showDialog(
@@ -161,8 +155,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
   @override
   Widget build(BuildContext context) {
-    _selectedExpenseType = categoriesList[0];
-    getExpenseCategories();
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFFF5F7FF),
@@ -183,47 +175,120 @@ class _ExpensesPageState extends State<ExpensesPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DropdownButtonFormField<String>(
-                value: _selectedExpenseType,
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedExpenseType = newValue!;
-                  });
-                },
-                items: categoriesList.map<DropdownMenuItem<String>>(
-                  (String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(uid)
+                    .collection('expenseCategories')
+                    .doc('expenseCategories')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  List<DropdownMenuItem> catItems = [];
+                  if (!snapshot.hasData) {
+                    return CircularProgressIndicator(); // Show a loading indicator while waiting for data
+                  } else {
+                    // If the document doesn't exist or has no data, display 'Please add a category'
+                    List<dynamic> categories = snapshot.data!.get('categories');
+                    List<String> expenseCategories =
+                        List<String>.from(categories);
+                    catItems.add(
+                      DropdownMenuItem<String>(
+                        value: 'null',
+                        child: Text('Please select a category'),
+                      ),
                     );
-                  },
-                ).toList(),
-                decoration: InputDecoration(
-                  labelText: 'Expense Type',
-                  labelStyle: TextStyle(
-                    color: Color(0xFF8F94A3),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.transparent,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.transparent,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  fillColor: Colors.white,
-                  filled: true,
-                ),
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select an expense type';
+                    for (String category in expenseCategories) {
+                      catItems.add(
+                        DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(category),
+                        ),
+                      );
+                    }
+                    return DropdownButtonFormField(
+                      value: _selectedExpenseType,
+                      onChanged: (newValue) {
+                        setState(() {
+                          _selectedExpenseType = newValue!;
+                        });
+                      },
+                      items: catItems,
+                      decoration: InputDecoration(
+                        labelText: 'Expense Type',
+                        labelStyle: TextStyle(
+                          color: Color(0xFF8F94A3),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.transparent,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.transparent,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        fillColor: Colors.white,
+                        filled: true,
+                      ),
+                    );
                   }
-                  return null;
                 },
+              ),
+              SizedBox(height: 16.0),
+              InkWell(
+                onTap: () async {
+                  final DateTime? pickedDate = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime(2100),
+                  );
+                  if (pickedDate != null) {
+                    setState(() {
+                      _selectedDate = pickedDate;
+                    });
+                  }
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Date',
+                    labelStyle: TextStyle(
+                      color: Color(0xFF8F94A3),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.transparent,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.transparent,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    fillColor: Colors.white,
+                    filled: true,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        color: Color(0xFF6E7491),
+                      ),
+                      SizedBox(width: 8.0),
+                      Text(
+                        '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                        style: TextStyle(
+                          color: Color(0xFF6E7491),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               SizedBox(height: 16.0),
               TextFormField(
@@ -284,59 +349,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 ),
                 style: TextStyle(
                   color: Color(0xFF6E7491),
-                ),
-              ),
-              SizedBox(height: 16.0),
-              InkWell(
-                onTap: () async {
-                  final DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate,
-                    firstDate: DateTime(1900),
-                    lastDate: DateTime(2100),
-                  );
-                  if (pickedDate != null) {
-                    setState(() {
-                      _selectedDate = pickedDate;
-                    });
-                  }
-                },
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Date',
-                    labelStyle: TextStyle(
-                      color: Color(0xFF8F94A3),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.transparent,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.transparent,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    fillColor: Colors.white,
-                    filled: true,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today,
-                        color: Color(0xFF6E7491),
-                      ),
-                      SizedBox(width: 8.0),
-                      Text(
-                        '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                        style: TextStyle(
-                          color: Color(0xFF6E7491),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
               SizedBox(height: 30.0),

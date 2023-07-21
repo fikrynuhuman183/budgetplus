@@ -40,6 +40,9 @@ dependencies:
   cloud_firestore: ^4.8.0
   animations: ^2.0.7
   modal_progress_hud_nsn: ^0.4.0
+  fl_chart: ^0.63.0
+  shared_preferences: ^2.0.11
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:

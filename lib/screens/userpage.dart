@@ -131,7 +131,7 @@ class _UserPageState extends State<UserPage> {
                 ),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'About',
@@ -156,38 +156,44 @@ class _UserPageState extends State<UserPage> {
                     ),
                   ),
                   SingleChildScrollView(
-                    child: Column(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Ganathipan'),
                             Text('Abishothman'),
-                            // Text('Hasmy'),
-                            // Text('Bhathiya'),
-                            // Text('Movindhu'),
-                            // Text('Chamodi Hansana'),
-                            // Text('Chamodi Imalsha'),
-                            // Text('Dinithi'),
-                            // Text('Heshanth'),
-                            // Text('Hasith'),
+                            Text('Hasmy'),
+                            Text('Imalsha'),
+                            Text('Movindhu'),
+                            Text('Chamodi Hansana'),
+                            Text('Tharusha'),
+                            Text('Keshani'),
+                            Text('Hasith'),
+                            Text('Dinithi'),
+                            Text('Kaveesha'),
                           ],
                         ),
-                        SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        SizedBox(
+                          width: 30,
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Text('Tharushi'),
+                            Text('Anjana'),
+                            Text('Shihara'),
+                            Text('Soumiya'),
                             Text('Inshiham'),
-                            Text('Kaveesha'),
-                            // Text('Chamath'),
-                            // Text('Keshani'),
-                            // Text('Shamishka'),
-                            // Text('Shehan'),
-                            // Text('Kaveesha'),
-                            // Text('Kaveesha'),
-                            // Text('Kaveesha'),
-                            // Text('Kaveesha'),
-                            // Text('Kaveesha'),
+                            Text('Shamishka'),
+                            Text('Shehan'),
+                            Text('Bathiya'),
+                            Text('Heshanth'),
+                            Text('Uththara'),
+                            Text('Fikry'),
                           ],
                         ),
                         // Add more rows as needed

@@ -166,11 +166,21 @@ class _AddIncomeCategoryState extends State<AddIncomeCategory> {
       if (snapshot.exists) {
         Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
         List<String> existingCategories = List<String>.from(data['categories']);
-        List<String> updatedCategories = [...existingCategories, category];
 
-        await incomeCategoriesRef
-            .doc('incomeCategories')
-            .update({'categories': updatedCategories});
+        // Convert the existing categories to lowercase for case-insensitive comparison
+        List<String> lowercaseCategories = existingCategories
+            .map((category) => category.toLowerCase())
+            .toList();
+
+        // Convert the new category to lowercase for case-insensitive comparison
+        String lowercaseCategory = category.toLowerCase();
+        if (!lowercaseCategories.contains(lowercaseCategory)) {
+          List<String> updatedCategories = [...existingCategories, category];
+
+          await incomeCategoriesRef
+              .doc('incomeCategories')
+              .update({'categories': updatedCategories});
+        }
       } else {
         // If 'categories' document doesn't exist, create a new one with the new categories
         await incomeCategoriesRef.doc('incomeCategories').set({
@@ -221,7 +231,7 @@ class _AddIncomeCategoryState extends State<AddIncomeCategory> {
         title: Text(
           '',
           style: TextStyle(
-            color: Colors.grey,
+            color: Color(0xFF4A44C6),
           ),
         ),
       ),
@@ -266,26 +276,53 @@ class _AddIncomeCategoryState extends State<AddIncomeCategory> {
               ),
             ),
             SizedBox(height: 16),
-            TextButton(
-              onPressed: () async {
-                String category = categoryController.text;
-                await addCategory(category: category);
-                Navigator.pop(context);
-              },
-              child: Text('Add',
-                  style: TextStyle(
-                    color: Color(0xFF4A44C6),
-                  )),
-              style: ButtonStyle(
-                backgroundColor:
-                    MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
-                shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24.0),
-                    side: BorderSide.none,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    String category = categoryController.text;
+                    await addCategory(category: category);
+                    Navigator.pop(context);
+                  },
+                  child: Text('Add',
+                      style: TextStyle(
+                        color: Color(0xFF4A44C6),
+                      )),
+                  style: ButtonStyle(
+                    backgroundColor:
+                        MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
+                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        side: BorderSide.none,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                SizedBox(
+                  width: 20,
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('Back',
+                      style: TextStyle(
+                        color: Color(0xFF4A44C6),
+                      )),
+                  style: ButtonStyle(
+                    backgroundColor:
+                        MaterialStateProperty.all<Color>(Color(0xFFE9E9FF)),
+                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15.0),
+                        side: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 16),
             Expanded(

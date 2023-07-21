@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:budgetplus/main.dart';
 import 'package:budgetplus/components/custom_alert_dialog.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:budgetplus/components/auth_helper.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -16,13 +18,40 @@ class _LoginPageState extends State<LoginPage> {
   bool showSpinner = false;
   late TextEditingController emailController;
   late TextEditingController passwordController;
+  final AuthHelper _authHelper = AuthHelper();
+  final String _autoLoginKey = 'auto_login';
 
   @override
   void initState() {
     // TODO: implement initState
     _userNameController = TextEditingController();
     _passwordController = TextEditingController();
+
     super.initState();
+    _checkAutoLogin();
+  }
+
+  void _checkAutoLogin() async {
+    bool isLoggedIn = await _authHelper.autoLogin();
+    if (isLoggedIn) {
+      // User is already logged in, navigate to the home page
+      Navigator.pushNamedAndRemoveUntil(context, MyApp.mainRoute,
+          (route) => false); // Replace with your home page route
+    }
+  }
+
+  void _signInWithEmailAndPassword() async {
+    final email = _userNameController.text;
+    final password = _passwordController.text;
+    bool success =
+        await _authHelper.signInWithEmailAndPassword(email, password);
+    if (success) {
+      // Sign-in successful, navigate to the home page
+      Navigator.pushNamedAndRemoveUntil(context, MyApp.mainRoute,
+          (route) => false); // Replace with your home page route
+    } else {
+      // Handle sign-in failure here if needed
+    }
   }
 
   Future<String> loginUser() async {
@@ -39,10 +68,16 @@ class _LoginPageState extends State<LoginPage> {
         _userNameController.clear();
         _passwordController.clear();
 
-        Navigator.pushNamedAndRemoveUntil(
-            context, MyApp.mainRoute, (route) => false);
         // Navigator.pushNamed(context, MyApp.teacherDashboardRoute);
       });
+      final FirebaseAuth auth = FirebaseAuth.instance;
+      final User? user = auth.currentUser;
+      if (user != null) {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.setBool(_autoLoginKey, true);
+      }
+      Navigator.pushNamedAndRemoveUntil(
+          context, MyApp.mainRoute, (route) => false);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         // Handle user not found error

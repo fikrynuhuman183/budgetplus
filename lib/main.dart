@@ -9,6 +9,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'screens/main_screen.dart';
 import 'package:budgetplus/components/add_expense_cat.dart';
 import 'components/add_income_cat.dart';
+import 'components/auth_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,13 +17,36 @@ void main() async {
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   static const String homeRoute = '/';
   static const String mainRoute = '/mainPage';
   static const String loginRoute = '/student-login';
   static const String registrationRoute = '/registration';
   static const String addExpCat = '/addExpenseCategory';
   static const String addIncCat = '/addIncomeCategory';
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final AuthHelper _authHelper = AuthHelper();
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _checkAutoLogin();
+  }
+
+  void _checkAutoLogin() async {
+    bool isLoggedIn = await _authHelper.autoLogin();
+    if (isLoggedIn) {
+      // User is already logged in, navigate to the home page
+      Navigator.pushNamedAndRemoveUntil(context, MyApp.mainRoute,
+          (route) => false); // Replace with your home page route
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,23 +56,23 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
       ),
-      initialRoute: homeRoute,
+      initialRoute: MyApp.homeRoute,
       routes: {
-        homeRoute: (context) => HomePage(),
-        mainRoute: (context) => MainPage(),
-        registrationRoute: (context) => RegisterPage(),
-        loginRoute: (context) => LoginPage(),
-        addExpCat: (context) => AddExpenseCategory(),
-        addIncCat: (context) => AddIncomeCategory(),
+        MyApp.homeRoute: (context) => HomePage(),
+        MyApp.mainRoute: (context) => MainPage(),
+        MyApp.registrationRoute: (context) => RegisterPage(),
+        MyApp.loginRoute: (context) => LoginPage(),
+        MyApp.addExpCat: (context) => AddExpenseCategory(),
+        MyApp.addIncCat: (context) => AddIncomeCategory(),
       },
       onGenerateRoute: (RouteSettings settings) {
         switch (settings.name) {
-          case homeRoute:
+          case MyApp.homeRoute:
             return SlideTransitionRoute(
               builder: (_) => HomePage(),
               direction: AxisDirection.right,
             );
-          case loginRoute:
+          case MyApp.loginRoute:
             return SlideTransitionRoute(
               builder: (_) => LoginPage(),
               direction: AxisDirection.left,
@@ -79,7 +103,15 @@ class SlideTransitionRoute<T> extends PageRouteBuilder<T> {
                   0.0,
                 ),
                 end: Offset.zero,
-              ).animate(animation),
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve:
+                      Curves.easeInOut, // Adjust the animation curve if needed
+                  reverseCurve:
+                      Curves.easeInOut, // Adjust the reverse curve if needed
+                ),
+              ),
               child: child,
             );
           },

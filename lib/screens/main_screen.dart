@@ -9,6 +9,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:budgetplus/main.dart';
 import 'package:animations/animations.dart';
+import 'package:budgetplus/components/auth_helper.dart';
 
 class MainPage extends StatefulWidget {
   static const String title = 'BudgetPlus';
@@ -72,6 +73,7 @@ class _MainPageState extends State<MainPage> {
                   ),
                   onPressed: () async {
                     await FirebaseAuth.instance.signOut();
+
                     Navigator.pushNamedAndRemoveUntil(
                         context, MyApp.loginRoute, (route) => false);
                   },

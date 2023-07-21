@@ -57,6 +57,22 @@ class _RegisterPageState extends State<RegisterPage> {
               .set({
             'name': _nameController.text,
           });
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUser.user?.uid)
+              .collection('expenseCategories')
+              .doc('expenseCategories')
+              .set({
+            'categories': FieldValue.arrayUnion(['Food'])
+          });
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(currentUser.user?.uid)
+              .collection('incomeCategories')
+              .doc('incomeCategories')
+              .set({
+            'categories': FieldValue.arrayUnion(['Monthly Salary'])
+          });
         });
 
         Navigator.pushNamedAndRemoveUntil(
@@ -97,6 +113,33 @@ class _RegisterPageState extends State<RegisterPage> {
               return CustomAlertDialog(
                 title: 'Error',
                 content: 'The account already exists for that email.',
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              );
+            },
+          );
+        } else if (e.code == 'invalid-email') {
+          print('The account already exists for that email.');
+          showDialog(
+            context: context,
+            builder: (context) {
+              return CustomAlertDialog(
+                title: 'Error',
+                content: 'The email address is invalid. Please try agian',
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              );
+            },
+          );
+        } else {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return CustomAlertDialog(
+                title: 'Error',
+                content: 'Unknown error.',
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
